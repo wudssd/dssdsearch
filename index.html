@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ข้อมูลการเข้ารับทุนการศึกษา</title>
+
+  <!-- Google Font: Kanit -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- TailwindCSS CDN (เหมาะกับ GitHub Pages / ไม่ต้อง build) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html, body { font-family: 'Kanit', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  </style>
+
+  <script>
+    // ตั้งค่าสี Tailwind แบบเร็ว (option เพิ่มความละมุนของไล่สี)
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pastel: {
+              card: 'rgba(255,255,255,0.85)',
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px rgba(31,41,55,.15)',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-500 via-sky-400 to-purple-500">
+
+  <!-- Page Wrapper -->
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <!-- Card -->
+    <div class="w-full max-w-2xl">
+      <div class="backdrop-blur-md bg-pastel-card rounded-3xl shadow-soft border border-white/40">
+        <!-- Header -->
+        <div class="rounded-t-3xl p-8 text-center">
+          <h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-indigo-900 drop-shadow-sm">
+            ข้อมูลการเข้ารับทุนการศึกษา
+          </h1>
+          <p class="mt-3 text-indigo-800/80 text-sm sm:text-base">
+            ค้นหาด้วยรหัสนักศึกษา แล้วระบบจะแสดงผลแบบหน้าต่างป๊อปอัพ (Modal)
+          </p>
+        </div>
+
+        <!-- Divider (ไล่สีแนวนุ่ม) -->
+        <div class="h-[2px] bg-gradient-to-r from-white/0 via-white/70 to-white/0"></div>
+
+        <!-- Search Area -->
+        <div class="p-6 sm:p-8">
+          <div class="grid gap-4 sm:gap-5">
+            <label for="studentId" class="text-indigo-900 font-medium">รหัสนักศึกษา</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input
+                id="studentId"
+                type="text"
+                inputmode="numeric"
+                placeholder="กรอกรหัสนักศึกษา เช่น 650000001"
+                class="w-full rounded-2xl border border-indigo-300/60 bg-white/70 focus:bg-white px-4 py-3 outline-none focus:ring-4 ring-indigo-300 placeholder-indigo-300"
+              />
+              <button
+                id="searchBtn"
+                class="whitespace-nowrap rounded-2xl px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium shadow hover:shadow-lg transition active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                ค้นหา
+              </button>
+            </div>
+
+            <!-- Status / Error line -->
+            <div id="status" class="min-h-[1.5rem] text-sm text-indigo-900/80"></div>
+
+            <!-- Tips -->
+            <div class="text-xs text-indigo-900/70">
+              หมายเหตุ: หากไม่พบข้อมูล ระบบจะแจ้ง “ไม่พบข้อมูล กรุณาติดต่อเจ้าหน้าที่”
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center text-white/90 text-xs sm:text-sm mt-4">
+        พัฒนาโดย ส่วนส่งเสริมและพัฒนานักศึกษา
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div
+    id="resultModal"
+    class="fixed inset-0 z-40 hidden items-center justify-center p-4"
+    aria-hidden="true"
+  >
+    <!-- Backdrop -->
+    <div id="modalBackdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+    <!-- Modal Card -->
+    <div
+      class="relative z-10 w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-indigo-100 overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+      <!-- Top Bar Gradient -->
+      <div class="h-2 bg-gradient-to-r from-indigo-600 to-purple-600"></div>
+
+      <div class="p-6 sm:p-8">
+        <div class="flex items-start justify-between">
+          <h2 id="modalTitle" class="text-xl sm:text-2xl font-semibold text-indigo-900">
+            ผลการค้นหา
+          </h2>
+          <button
+            id="closeModalBtn"
+            class="ml-3 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1 text-sm font-medium"
+          >ปิด</button>
+        </div>
+
+        <div class="mt-5 grid gap-4">
+          <!-- Seat Number (ใหญ่สุด) -->
+          <div class="text-center">
+            <div class="text-indigo-700/80 text-sm">เลขที่นั่ง</div>
+            <div id="seatNumber" class="mt-1 text-4xl sm:text-5xl md:text-6xl font-bold text-indigo-900 tracking-wide"></div>
+          </div>
+
+          <div class="grid gap-2 text-indigo-900/90">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <span class="font-medium text-indigo-700">รหัสนักศึกษา</span>
+              <span id="studentIdDisplay" class="text-indigo-900"></span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <span class="font-medium text-indigo-700">ชื่อ-สกุล</span>
+              <span id="fullName" class="text-indigo-900"></span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <span class="font-medium text-indigo-700">ชื่อทุน</span>
+              <span id="scholarshipName" class="text-indigo-900"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Glow -->
+      <div class="h-2 bg-gradient-to-r from-indigo-600 to-purple-600"></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // CONFIG
+    // =========================
+    const SHEET_ID = '1Owkrh-v1hYexmOBnuSaYrV6v2352atLazw6HWlUQU84';
+    const SHEET_NAME = 'ชีต1'; // ต้องสะกดตรงกับชื่อชีต (รองรับภาษาไทย)
+
+    // ใช้ Google Visualization API endpoint (ไม่ต้องใช้ API Key)
+    // **สำคัญ**: ต้องเปิดสิทธิ์เอกสารให้สาธารณะ (หรือ Publish to web) เพื่อให้ดึงได้จาก GitHub Pages
+    const GVIZ_URL =
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
+
+    // เก็บข้อมูลทั้งหมดหลังโหลด
+    let rowsCache = [];
+
+    // -------------------------
+    // Helper: แปลงผลลัพธ์ gviz -> array objects
+    // คอลัมน์ในชีตเรียง: A=รหัสนักศึกษา, B=ชื่อ-สกุล, C=เลขที่นั่ง, D=ชื่อทุน
+    // -------------------------
+    function parseGvizToArrayObjects(gvizJson) {
+      const cols = gvizJson.table.cols || [];
+      const rows = gvizJson.table.rows || [];
+
+      const data = [];
+      for (const r of rows) {
+        const c = (r.c || []);
+        const studentId = c[0]?.v ?? '';
+        const fullName  = c[1]?.v ?? '';
+        const seatNo    = c[2]?.v ?? '';
+        const fundName  = c[3]?.v ?? '';
+
+        // ข้ามแถวว่างจริง ๆ
+        if (!studentId && !fullName && !seatNo && !fundName) continue;
+
+        data.push({
+          studentId: String(studentId).trim(),
+          fullName: String(fullName).trim(),
+          seatNo: String(seatNo).trim(),
+          fundName: String(fundName).trim(),
+        });
+      }
+      return data;
+    }
+
+    // -------------------------
+    // โหลดข้อมูลจาก Google Sheets
+    // -------------------------
+    async function loadSheetData() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'กำลังโหลดข้อมูล...';
+
+      try {
+        const res = await fetch(GVIZ_URL, { cache: 'no-store' });
+        const text = await res.text();
+
+        // gviz response รูปแบบ: google.visualization.Query.setResponse({...});
+        const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)\s*;?/);
+        if (!match) throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
+
+        const json = JSON.parse(match[1]);
+        rowsCache = parseGvizToArrayObjects(json);
+
+        statusEl.textContent = `พร้อมใช้งานแล้ว (${rowsCache.length.toLocaleString()} แถว)`;
+      } catch (err) {
+        console.error(err);
+        statusEl.classList.add('text-red-700');
+        statusEl.textContent = 'ไม่สามารถดึงข้อมูลจาก Google Sheets ได้ กรุณาตรวจสอบสิทธิ์การเข้าถึง/การเผยแพร่';
+      }
+    }
+
+    // -------------------------
+    // ค้นหาตามรหัสนักศึกษา (exact match แบบ trim)
+    // -------------------------
+    function findByStudentId(stdId) {
+      const target = String(stdId).trim();
+      if (!target) return null;
+      return rowsCache.find(r => r.studentId === target) || null;
+    }
+
+    // -------------------------
+    // Modal Control
+    // -------------------------
+    const modal = {
+      el: null,
+      backdrop: null,
+      open(data) {
+        // เติมข้อมูล
+        document.getElementById('seatNumber').textContent = data.seatNo || '-';
+        document.getElementById('studentIdDisplay').textContent = data.studentId || '-';
+        document.getElementById('fullName').textContent = data.fullName || '-';
+        document.getElementById('scholarshipName').textContent = data.fundName || '-';
+
+        this.el.classList.remove('hidden');
+        this.el.setAttribute('aria-hidden', 'false');
+        // โฟกัสปุ่มปิดเพื่อรองรับคีย์บอร์ด
+        document.getElementById('closeModalBtn').focus();
+      },
+      close() {
+        this.el.classList.add('hidden');
+        this.el.setAttribute('aria-hidden', 'true');
+      },
+      init() {
+        this.el = document.getElementById('resultModal');
+        this.backdrop = document.getElementById('modalBackdrop');
+        document.getElementById('closeModalBtn').addEventListener('click', () => this.close());
+        this.backdrop.addEventListener('click', () => this.close());
+        // ปิดด้วยปุ่ม Esc
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !this.el.classList.contains('hidden')) {
+            this.close();
+          }
+        });
+      }
+    };
+
+    // -------------------------
+    // Event Binding
+    // -------------------------
+    function setupSearch() {
+      const input = document.getElementById('studentId');
+      const btn = document.getElementById('searchBtn');
+      const statusEl = document.getElementById('status');
+
+      const doSearch = () => {
+        const q = input.value.trim();
+        if (!q) {
+          statusEl.classList.remove('text-red-700');
+          statusEl.textContent = 'กรุณากรอกรหัสนักศึกษา';
+          input.focus();
+          return;
+        }
+
+        if (!rowsCache.length) {
+          statusEl.classList.add('text-red-700');
+          statusEl.textContent = 'ยังไม่มีข้อมูลสำหรับค้นหา กรุณาตรวจสอบการเชื่อมต่อ';
+          return;
+        }
+
+        const found = findByStudentId(q);
+
+        if (!found) {
+          statusEl.classList.add('text-red-700');
+          statusEl.textContent = 'ไม่พบข้อมูล กรุณาติดต่อเจ้าหน้าที่';
+          return;
+        }
+
+        // ล้างข้อความเตือน และแสดงโมดัล
+        statusEl.classList.remove('text-red-700');
+        statusEl.textContent = '';
+        modal.open(found);
+      };
+
+      btn.addEventListener('click', doSearch);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doSearch();
+      });
+    }
+
+    // -------------------------
+    // Init
+    // -------------------------
+    window.addEventListener('DOMContentLoaded', async () => {
+      modal.init();
+      setupSearch();
+      await loadSheetData();
+    });
+  </script>
+</body>
+</html>
