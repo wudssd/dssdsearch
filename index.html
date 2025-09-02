@@ -43,6 +43,13 @@
       <div class="backdrop-blur-md bg-pastel-card rounded-3xl shadow-soft border border-white/40">
         <!-- Header -->
         <div class="rounded-t-3xl p-8 text-center">
+          <!-- Small Logo -->
+          <img
+            src="https://drive.google.com/uc?export=view&id=12gLdwUb7VG5mAwanS2yNIcaydtL4U7vN"
+            alt="Organization Logo"
+            class="h-12 sm:h-14 mx-auto mb-3 opacity-95"
+            loading="lazy"
+          />
           <h1 id="title" class="text-3xl sm:text-4xl md:text-5xl font-semibold text-indigo-900 drop-shadow-sm">
             ข้อมูลการเข้ารับทุนการศึกษา
           </h1>
@@ -107,7 +114,6 @@
       <div class="p-6 sm:p-8">
         <div class="flex items-start justify-between">
           <h2 id="modalTitle" class="text-xl sm:text-2xl font-semibold text-indigo-900">ผลการค้นหา</h2>
-          <button id="closeModalBtn" class="ml-3 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1 text-sm font-medium">ปิด</button>
         </div>
 
         <div class="mt-5 grid gap-4">
@@ -136,6 +142,13 @@
         </div>
       </div>
 
+      <!-- Bottom Close Button (moved here) -->
+      <div class="px-6 pb-6 sm:px-8 sm:pb-8">
+        <button id="closeModalBtn" class="w-full rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-5 py-3 text-base font-medium">
+          ปิด
+        </button>
+      </div>
+
       <div class="h-2 bg-gradient-to-r from-indigo-600 to-purple-600"></div>
     </div>
   </div>
@@ -146,7 +159,6 @@
     // =========================
     const SHEET_ID = '1Owkrh-v1hYexmOBnuSaYrV6v2352atLazw6HWlUQU84';
     const SHEET_NAME = 'ชีต1';
-
     const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
 
     let rowsCache = [];
@@ -170,7 +182,6 @@
         fullName: 'ชื่อ-สกุล',
         scholarship: 'ชื่อทุน',
         loading: 'กำลังโหลดข้อมูล...',
-        ready: (n) => `พร้อมใช้งานแล้ว (${n.toLocaleString()} แถว)`,
         notLoaded: 'ยังไม่มีข้อมูลสำหรับค้นหา กรุณาตรวจสอบการเชื่อมต่อ',
         fetchError: 'ไม่สามารถดึงข้อมูลจาก Google Sheets ได้ กรุณาตรวจสอบสิทธิ์การเข้าถึง/การเผยแพร่',
         needId: 'กรุณากรอกรหัสนักศึกษา',
@@ -193,7 +204,6 @@
         fullName: 'Full Name',
         scholarship: 'Scholarship',
         loading: 'Loading data...',
-        ready: (n) => `Ready (${n.toLocaleString()} rows)`,
         notLoaded: 'Data not loaded yet. Please check your connection.',
         fetchError: 'Unable to fetch Google Sheets data. Please check access/sharing or publishing.',
         needId: 'Please enter student ID',
@@ -211,7 +221,6 @@
       document.documentElement.lang = lang;
       document.title = t.title;
 
-      // Texts
       document.getElementById('title').textContent = t.title;
       document.getElementById('subtitle').textContent = t.subtitle;
       document.getElementById('labelStudentId').textContent = t.labelStudentId;
@@ -227,15 +236,11 @@
       document.getElementById('labelFullName').textContent = t.fullName;
       document.getElementById('labelScholarship').textContent = t.scholarship;
 
-      // Toggle active style
       document.getElementById('btnTH').classList.toggle('bg-indigo-100', lang === 'th');
       document.getElementById('btnEN').classList.toggle('bg-indigo-100', lang === 'en');
     }
 
-    // -------------------------
-    // Helper: Parse GViz JSON to array objects
-    // Columns: A=studentId, B=fullName, C=seatNo, D=fundName
-    // -------------------------
+    // Parse GViz JSON
     function parseGvizToArrayObjects(gvizJson) {
       const rows = gvizJson.table.rows || [];
       const data = [];
@@ -256,9 +261,7 @@
       return data;
     }
 
-    // -------------------------
-    // Load Google Sheet data
-    // -------------------------
+    // Load Google Sheet data (no "ready" message shown)
     async function loadSheetData() {
       const statusEl = document.getElementById('status');
       statusEl.classList.remove('text-red-700');
@@ -271,7 +274,8 @@
         if (!match) throw new Error('Bad response format');
         const json = JSON.parse(match[1]);
         rowsCache = parseGvizToArrayObjects(json);
-        statusEl.textContent = i18n[lang].ready(rowsCache.length);
+        // Clear status instead of showing "ready" count
+        statusEl.textContent = '';
       } catch (err) {
         console.error(err);
         statusEl.classList.add('text-red-700');
@@ -279,18 +283,14 @@
       }
     }
 
-    // -------------------------
     // Find by Student ID (exact match)
-    // -------------------------
     function findByStudentId(stdId) {
       const target = String(stdId).trim();
       if (!target) return null;
       return rowsCache.find(r => r.studentId === target) || null;
     }
 
-    // -------------------------
     // Modal Control
-    // -------------------------
     const modal = {
       el: null,
       backdrop: null,
@@ -319,20 +319,15 @@
       }
     };
 
-    // -------------------------
     // Input restrictions (digits only, max 8)
-    // -------------------------
     function attachDigitOnly(input) {
       input.addEventListener('input', () => {
-        // keep only digits and cut to 8
         let v = input.value.replace(/\D/g, '').slice(0, 8);
         input.value = v;
       });
     }
 
-    // -------------------------
-    // Event Binding
-    // -------------------------
+    // Search binding
     function setupSearch() {
       const input = document.getElementById('studentId');
       const btn = document.getElementById('searchBtn');
@@ -383,26 +378,17 @@
       attachDigitOnly(input);
     }
 
-    // -------------------------
-    // Language toggle
-    // -------------------------
+    // Language toggle (no "ready" message updates)
     function setupLangToggle() {
       document.getElementById('btnTH').addEventListener('click', () => {
         lang = 'th'; localStorage.setItem('lang', lang); applyLang();
-        // refresh status text to current language context while preserving state
-        const statusEl = document.getElementById('status');
-        if (rowsCache.length) statusEl.textContent = i18n[lang].ready(rowsCache.length);
       });
       document.getElementById('btnEN').addEventListener('click', () => {
         lang = 'en'; localStorage.setItem('lang', lang); applyLang();
-        const statusEl = document.getElementById('status');
-        if (rowsCache.length) statusEl.textContent = i18n[lang].ready(rowsCache.length);
       });
     }
 
-    // -------------------------
     // Init
-    // -------------------------
     window.addEventListener('DOMContentLoaded', async () => {
       modal.init();
       setupSearch();
